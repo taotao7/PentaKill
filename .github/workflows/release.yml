@@ -61,15 +61,64 @@ jobs:
       run: |
         mkdir -p artifacts
 
-    - name: Copy binary and create archive
+    - name: Create .app bundle
       run: |
+        # Create .app directory structure
+        mkdir -p artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/MacOS
+        mkdir -p artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources
+
+        # Copy and modify Info.plist
+        sed -e 's/$(DEVELOPMENT_LANGUAGE)/en/' \
+            -e 's/$(EXECUTABLE_NAME)/PentaKill/' \
+            -e 's/$(PRODUCT_BUNDLE_IDENTIFIER)/com.github.pentakill/' \
+            -e 's/$(MACOSX_DEPLOYMENT_TARGET)/13.0/' \
+            -e 's/<string>icon<\/string>/<string>PentaKill<\/string>/' \
+            Info.plist > artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Info.plist
+
+        # Copy executable
+        cp .build/release/PentaKill artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/MacOS/
+
+        # Create icon set if icon exists
+        if [ -f "icon.png" ]; then
+          mkdir -p artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset
+
+          # Create icon in different sizes
+          sips -z 16 16 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_16x16.png 2>/dev/null || true
+          sips -z 32 32 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_16x16@2x.png 2>/dev/null || true
+          sips -z 32 32 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_32x32.png 2>/dev/null || true
+          sips -z 64 64 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_32x32@2x.png 2>/dev/null || true
+          sips -z 128 128 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_128x128.png 2>/dev/null || true
+          sips -z 256 256 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_128x128@2x.png 2>/dev/null || true
+          sips -z 256 256 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_256x256.png 2>/dev/null || true
+          sips -z 512 512 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_256x256@2x.png 2>/dev/null || true
+          sips -z 512 512 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_512x512.png 2>/dev/null || true
+          sips -z 1024 1024 icon.png --out artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset/icon_512x512@2x.png 2>/dev/null || true
+
+          # Create icns file
+          iconutil -c icns artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/PentaKill.iconset 2>/dev/null || {
+            # Fallback: copy original icon as icon.png
+            cp icon.png artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/Resources/
+          }
+        fi
+
+        # Set executable permissions
+        chmod +x artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app/Contents/MacOS/PentaKill
+
+    - name: Create archives
+      run: |
+        # Create .app archive
+        tar -czvf artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app.tar.gz -C artifacts PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app
+
+        # Also create standalone binary archive
         cp .build/release/PentaKill artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}
         tar -czvf artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz -C artifacts PentaKill-${{ matrix.platform }}-${{ matrix.arch }}
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
       with:
-        files: artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+        files: |
+          artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+          artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.app.tar.gz
 
   create-universal-binary:
     name: Create Universal Binary
@@ -101,15 +150,64 @@ jobs:
       run: |
         mkdir -p artifacts
 
-    - name: Copy universal binary and create archive
+    - name: Create universal .app bundle
       run: |
+        # Create .app directory structure
+        mkdir -p artifacts/PentaKill-macos-universal.app/Contents/MacOS
+        mkdir -p artifacts/PentaKill-macos-universal.app/Contents/Resources
+
+        # Copy and modify Info.plist
+        sed -e 's/$(DEVELOPMENT_LANGUAGE)/en/' \
+            -e 's/$(EXECUTABLE_NAME)/PentaKill/' \
+            -e 's/$(PRODUCT_BUNDLE_IDENTIFIER)/com.github.pentakill/' \
+            -e 's/$(MACOSX_DEPLOYMENT_TARGET)/13.0/' \
+            -e 's/<string>icon<\/string>/<string>PentaKill<\/string>/' \
+            Info.plist > artifacts/PentaKill-macos-universal.app/Contents/Info.plist
+
+        # Copy universal executable
+        cp .build/release/PentaKill-universal artifacts/PentaKill-macos-universal.app/Contents/MacOS/PentaKill
+
+        # Create icon set if icon exists
+        if [ -f "icon.png" ]; then
+          mkdir -p artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset
+
+          # Create icon in different sizes
+          sips -z 16 16 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_16x16.png 2>/dev/null || true
+          sips -z 32 32 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_16x16@2x.png 2>/dev/null || true
+          sips -z 32 32 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_32x32.png 2>/dev/null || true
+          sips -z 64 64 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_32x32@2x.png 2>/dev/null || true
+          sips -z 128 128 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_128x128.png 2>/dev/null || true
+          sips -z 256 256 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_128x128@2x.png 2>/dev/null || true
+          sips -z 256 256 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_256x256.png 2>/dev/null || true
+          sips -z 512 512 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_256x256@2x.png 2>/dev/null || true
+          sips -z 512 512 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_512x512.png 2>/dev/null || true
+          sips -z 1024 1024 icon.png --out artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset/icon_512x512@2x.png 2>/dev/null || true
+
+          # Create icns file
+          iconutil -c icns artifacts/PentaKill-macos-universal.app/Contents/Resources/PentaKill.iconset 2>/dev/null || {
+            # Fallback: copy original icon as icon.png
+            cp icon.png artifacts/PentaKill-macos-universal.app/Contents/Resources/
+          }
+        fi
+
+        # Set executable permissions
+        chmod +x artifacts/PentaKill-macos-universal.app/Contents/MacOS/PentaKill
+
+    - name: Create universal archives
+      run: |
+        # Create .app archive
+        tar -czvf artifacts/PentaKill-macos-universal.app.tar.gz -C artifacts PentaKill-macos-universal.app
+
+        # Also create standalone binary archive
         cp .build/release/PentaKill-universal artifacts/PentaKill-macos-universal
         tar -czvf artifacts/PentaKill-macos-universal.tar.gz -C artifacts PentaKill-macos-universal
 
     - name: Upload Universal Binary Release Asset
       uses: softprops/action-gh-release@v2
       with:
-        files: artifacts/PentaKill-macos-universal.tar.gz
+        files: |
+          artifacts/PentaKill-macos-universal.tar.gz
+          artifacts/PentaKill-macos-universal.app.tar.gz
 
   build-snapshot:
     name: Build Snapshot

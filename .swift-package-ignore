@@ -4,7 +4,8 @@
 Info.plist
 entitlements.plist
 README.md
-*.png
+example.png
+icon.png
 .DS_Store
 ContentView_Broken.swift
 ContentView_Old.swift
