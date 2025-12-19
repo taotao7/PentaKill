@@ -67,14 +67,9 @@ jobs:
         tar -czvf artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz -C artifacts PentaKill-${{ matrix.platform }}-${{ matrix.arch }}
 
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
-        asset_name: PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
-        asset_content_type: application/gzip
+        files: artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
 
   create-universal-binary:
     name: Create Universal Binary
@@ -112,14 +107,9 @@ jobs:
         tar -czvf artifacts/PentaKill-macos-universal.tar.gz -C artifacts PentaKill-macos-universal
 
     - name: Upload Universal Binary Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: artifacts/PentaKill-macos-universal.tar.gz
-        asset_name: PentaKill-macos-universal.tar.gz
-        asset_content_type: application/gzip
+        files: artifacts/PentaKill-macos-universal.tar.gz
 
   build-snapshot:
     name: Build Snapshot
@@ -147,7 +137,7 @@ jobs:
         tar -czvf artifacts/PentaKill-snapshot-${{ steps.date.outputs.date }}.tar.gz -C artifacts PentaKill-snapshot-${{ steps.date.outputs.date }}
 
     - name: Upload snapshot artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: PentaKill-snapshot
         path: artifacts/PentaKill-snapshot-${{ steps.date.outputs.date }}.tar.gz
