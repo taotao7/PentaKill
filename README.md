@@ -2,6 +2,10 @@
 
 A macOS system tray application for monitoring and managing network ports used by applications.
 
+## Preview
+
+![Example](https://github.com/taotao7/PentaKill/blob/main/example.png)
+
 ## Features
 
 - **Real-time Port Monitoring**: Automatically scans and displays all active network ports

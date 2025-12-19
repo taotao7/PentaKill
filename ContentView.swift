@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showingKillConfirmation = false
     @State private var selectedProcess: ProcessInfo?
     @State private var expandedProcesses: Set<String> = []
+    @State private var refreshInterval: TimeInterval = 5.0
 
     private var filteredProcesses: [ProcessInfo] {
         var filtered = portScanner.processes
@@ -34,11 +35,23 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack {
-                Image(systemName: "network")
-                    .foregroundColor(.accentColor)
-                Text("PentaKill")
-                    .font(.headline)
+            HStack(spacing: 16) {
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.1))
+                            .frame(width: 32, height: 32)
+                        
+                        Image(systemName: "network")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.accentColor)
+                    }
+                    
+                    Text("PentaKill")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                }
+                
                 Spacer()
 
                 // Refresh button
@@ -47,40 +60,82 @@ struct ContentView: View {
                         await portScanner.scanPorts()
                     }
                 }) {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(portScanner.isScanning ? 360 : 0))
-                        .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: portScanner.isScanning)
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .medium))
+                            .rotationEffect(.degrees(portScanner.isScanning ? 360 : 0))
+                            .animation(portScanner.isScanning ? .linear(duration: 1).repeatForever(autoreverses: false) : .easeOut(duration: 0.2), value: portScanner.isScanning)
+                        
+                        Text(portScanner.isScanning ? "Scanning..." : "Refresh")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.accentColor.opacity(0.1))
+                    )
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.accentColor.opacity(0.2), lineWidth: 1)
+                    )
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
                 .disabled(portScanner.isScanning)
 
                 // Quit button
                 Button(action: {
                     NSApplication.shared.terminate(nil)
                 }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                    Image(systemName: "power")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.red)
+                        .frame(width: 28, height: 28)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(Circle())
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
                 .help("Quit PentaKill")
             }
-            .padding()
-
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(.ultraThinMaterial)
+            
             Divider()
 
             // Search and Filter
-            VStack(spacing: 8) {
-                HStack {
+            VStack(spacing: 12) {
+                HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                    TextField("Search processes or ports...", text: $searchText)
+                        .font(.system(size: 14))
+                    
+                    TextField("Search processes, PIDs or ports...", text: $searchText)
                         .textFieldStyle(.plain)
+                        .font(.body)
+                    
+                    if !searchText.isEmpty {
+                        Button(action: { searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(.horizontal)
+                .padding(10)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
 
                 HStack {
                     Text("Filter:")
-                        .font(.caption)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                         .foregroundColor(.secondary)
 
                     Picker("Protocol", selection: $selectedPortProtocol) {
@@ -90,10 +145,14 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .frame(maxWidth: 200)
+                    
+                    Spacer()
                 }
-                .padding(.horizontal)
             }
-            .padding(.vertical, 8)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color(nsColor: .windowBackgroundColor))
 
             Divider()
 
@@ -167,13 +226,34 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("Auto-refresh: 5s")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                
+                Menu {
+                    Button("1s") { refreshInterval = 1.0 }
+                    Button("3s") { refreshInterval = 3.0 }
+                    Button("5s") { refreshInterval = 5.0 }
+                    Button("10s") { refreshInterval = 10.0 }
+                    Divider()
+                    Button("Pause") { refreshInterval = 0 }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(refreshInterval > 0 ? "Auto-refresh: \(Int(refreshInterval))s" : "Auto-refresh: Paused")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 8))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
             .padding(.horizontal)
+            .padding(.vertical, 8)
         }
         .frame(width: 400, height: 500)
+        .onChange(of: refreshInterval) { newValue in
+            portScanner.setRefreshInterval(newValue)
+        }
         .alert("Terminate Process", isPresented: $showingKillConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Terminate", role: .destructive) {

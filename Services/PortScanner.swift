@@ -11,7 +11,18 @@ class PortScanner: ObservableObject {
     private var nextOrder: Int = 0
 
     private var scanTimer: Timer?
-    private let refreshInterval: TimeInterval = 5.0 // seconds
+    
+    func setRefreshInterval(_ interval: TimeInterval) {
+        scanTimer?.invalidate()
+        if interval > 0 {
+            scanTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                Task {
+                    await self.scanPorts()
+                }
+            }
+        }
+    }
 
     init() {
         startPeriodicScanning()
@@ -22,11 +33,7 @@ class PortScanner: ObservableObject {
     }
 
     func startPeriodicScanning() {
-        scanTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { _ in
-            Task {
-                await self.scanPorts()
-            }
-        }
+        setRefreshInterval(5.0)
         // Initial scan
         Task {
             await scanPorts()

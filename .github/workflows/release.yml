@@ -8,8 +8,6 @@ on:
   release:
     types: [ published ]
 
-env:
-  DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
 
 jobs:
   test:
@@ -18,11 +16,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Select Xcode
+      run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
     - name: Build
-      run: swift build
+      run: swift build -v
 
     - name: Run tests
-      run: swift test
+      run: swift test -v
 
   build:
     name: Build Release Binary
@@ -43,6 +44,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
 
     - name: Build for ${{ matrix.platform }}-${{ matrix.arch }}
       run: |
@@ -74,6 +78,9 @@ jobs:
     if: github.event_name == 'release'
     steps:
     - uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
 
     - name: Build for x86_64
       run: |
@@ -116,6 +123,9 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
     - uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
 
     - name: Get current date
       id: date

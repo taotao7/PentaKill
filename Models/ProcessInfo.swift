@@ -9,10 +9,12 @@ struct ProcessInfo: Identifiable, Hashable {
         hasher.combine(processID)
         hasher.combine(processName)
     }
-    let id = UUID()
-  var uniqueId: String {
-    "\(processName)-\(processID)"
-  }
+    
+    var id: String { uniqueId }
+    
+    var uniqueId: String {
+        "\(processName)-\(processID)"
+    }
     let processName: String
     let processID: Int
     let command: String
