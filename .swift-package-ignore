@@ -1,0 +1,12 @@
+# Package ignore file for Swift Package Manager
+
+# Ignore files that shouldn't be part of the package
+Info.plist
+entitlements.plist
+README.md
+*.png
+.DS_Store
+ContentView_Broken.swift
+ContentView_Old.swift
+test_lsof.swift
+PentaKill.xcodeproj/**
