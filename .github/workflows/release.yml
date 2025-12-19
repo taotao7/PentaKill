@@ -1,0 +1,139 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
+
+jobs:
+  test:
+    name: Test
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build
+      run: swift build
+
+    - name: Run tests
+      run: swift test
+
+  build:
+    name: Build Release Binary
+    runs-on: macos-latest
+    needs: test
+    if: github.event_name == 'release'
+    strategy:
+      matrix:
+        include:
+          - platform: macos
+            arch: x86_64
+            sdk: macosx
+            destination: generic/platform=macOS
+          - platform: macos
+            arch: arm64
+            sdk: macosx
+            destination: generic/platform=macOS,variant=Mac Catalyst
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build for ${{ matrix.platform }}-${{ matrix.arch }}
+      run: |
+        swift build -c release --arch ${{ matrix.arch }}
+
+    - name: Create artifact directory
+      run: |
+        mkdir -p artifacts
+
+    - name: Copy binary and create archive
+      run: |
+        cp .build/release/PentaKill artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}
+        tar -czvf artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz -C artifacts PentaKill-${{ matrix.platform }}-${{ matrix.arch }}
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: artifacts/PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+        asset_name: PentaKill-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+        asset_content_type: application/gzip
+
+  create-universal-binary:
+    name: Create Universal Binary
+    runs-on: macos-latest
+    needs: test
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build for x86_64
+      run: |
+        swift build -c release --arch x86_64
+
+    - name: Build for arm64
+      run: |
+        swift build -c release --arch arm64
+
+    - name: Create universal binary
+      run: |
+        lipo -create .build/release/PentaKill -output .build/release/PentaKill-temp \
+          -arch x86_64 .build/x86_64-apple-macosx/release/PentaKill \
+          -arch arm64 .build/arm64-apple-macosx/release/PentaKill
+        mv .build/release/PentaKill-temp .build/release/PentaKill-universal
+
+    - name: Create artifact directory
+      run: |
+        mkdir -p artifacts
+
+    - name: Copy universal binary and create archive
+      run: |
+        cp .build/release/PentaKill-universal artifacts/PentaKill-macos-universal
+        tar -czvf artifacts/PentaKill-macos-universal.tar.gz -C artifacts PentaKill-macos-universal
+
+    - name: Upload Universal Binary Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: artifacts/PentaKill-macos-universal.tar.gz
+        asset_name: PentaKill-macos-universal.tar.gz
+        asset_content_type: application/gzip
+
+  build-snapshot:
+    name: Build Snapshot
+    runs-on: macos-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: Build
+      run: |
+        swift build -c release
+
+    - name: Create snapshot archive
+      run: |
+        mkdir -p artifacts
+        cp .build/release/PentaKill artifacts/PentaKill-snapshot-${{ steps.date.outputs.date }}
+        tar -czvf artifacts/PentaKill-snapshot-${{ steps.date.outputs.date }}.tar.gz -C artifacts PentaKill-snapshot-${{ steps.date.outputs.date }}
+
+    - name: Upload snapshot artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: PentaKill-snapshot
+        path: artifacts/PentaKill-snapshot-${{ steps.date.outputs.date }}.tar.gz
+        retention-days: 30
