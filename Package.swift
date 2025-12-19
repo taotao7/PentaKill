@@ -23,7 +23,16 @@ let package = Package(
                 "Views/ProcessGroupView.swift",
                 "Services/PortScanner.swift",
                 "Services/ProcessManager.swift"
+            ],
+            resources: [
+                .copy("Info.plist"),
+                .copy("entitlements.plist")
             ]
+        ),
+        .testTarget(
+            name: "PentaKillTests",
+            dependencies: ["PentaKill"],
+            path: "Tests"
         )
     ]
 )
