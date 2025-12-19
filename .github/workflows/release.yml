@@ -175,10 +175,10 @@ jobs:
         # Copy universal executable
         cp .build/release/PentaKill-universal artifacts/PentaKill.app/Contents/MacOS/PentaKill
 
-      # Create PkgInfo file
-      echo "APPL????" > artifacts/PentaKill.app/Contents/PkgInfo
+        # Create PkgInfo file
+        echo "APPL????" > artifacts/PentaKill.app/Contents/PkgInfo
 
-      # Create icon set if icon exists
+        # Create icon set if icon exists
         if [ -f "icon.png" ]; then
           mkdir -p artifacts/PentaKill.app/Contents/Resources/PentaKill.iconset
 
